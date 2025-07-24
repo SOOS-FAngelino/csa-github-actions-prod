@@ -1,0 +1,34 @@
+on: [push]
+ 
+jobs:
+  soos:
+    permissions:
+      security-events: write # for uploading code scanning alert info
+      actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
+    name: SOOS CSA Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run SOOS CSA Analysis
+        uses: soos-io/soos-csa-github-action@v1 #GET Latest Version from https://github.com/marketplace/actions/soos-csa
+        with:
+          client_id: ${{ secrets.SOOS_CLIENT_ID }}
+          api_key: ${{ secrets.SOOS_API_KEY }}
+          #api_url: "https://qa-api.soos.io/api/"        
+          project_name: "csa-github-actions-prod"
+          target_image: "ericallard/elasticsearch:x86"  
+          image_tag: latest
+          log_level: INFO
+          export_format: SARIF
+          export_file_type: JSON
+
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: 'reports'
+          path: '*'
+      - name: Rename file 
+        run: mv *.sarif.json results.sarif
+      - name: Upload SOOS DAST SARIF Report
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
